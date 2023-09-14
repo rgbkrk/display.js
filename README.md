@@ -2,10 +2,16 @@
 
 Rich Displays for Jupyter JavaScript Kernels
 
+`In[1]:`
+
 ```typescript
 import { display } from "https://deno.land/x/display/mod.ts"
 display({'text/markdown': 'Get ready for **denotebooks**! ![](https://github.com/denoland.png?size=32)'})
 ```
+
+`Out[1]:`
+
+Get ready for **denotebooks**! ![](https://github.com/denoland.png?size=32)
 
 ## Background
 
