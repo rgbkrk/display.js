@@ -5,8 +5,11 @@ Rich Displays for Jupyter JavaScript Kernels
 `In[1]:`
 
 ```typescript
-import { display } from "https://deno.land/x/display/mod.ts"
-display({'text/markdown': 'Get ready for **denotebooks**! ![](https://github.com/denoland.png?size=32)'})
+import { display } from "https://deno.land/x/display/mod.ts";
+display({
+  "text/markdown":
+    "Get ready for **denotebooks**! ![](https://github.com/denoland.png?size=32)",
+});
 ```
 
 `Out[1]:`
@@ -32,5 +35,12 @@ This module provides a simple API to display richer media types in the Deno kern
 Obviously this isn't the most _fun_ interface which is why this module provides a `display` function to make it easier to use.
 
 ```typescript
-display({'text/markdown': '# Hello from Deno'})
+display({ "text/markdown": "# Hello from Deno" });
 ```
+
+## Roadmap
+
+- [ ] Create a `display` function to provide deno functionality like `IPython.display(obj, raw=True)`
+- [ ] Adapt `display` function to hook into sending `display_data` on the Deno kernel
+- [ ] Detect common objects and determine the best representation
+  - [ ] `Canvas` -> `image/png`

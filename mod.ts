@@ -41,15 +41,29 @@ function hasDisplaySymbol(obj: unknown): obj is Displayable {
   return obj !== null && typeof obj === "object" && $display in obj;
 }
 
-function isCanvasLike(obj: unknown): obj is HTMLCanvasElement {
+type PossibleCanvas = {
+  toDataURL: () => string;
+};
+
+function isCanvasLike(obj: unknown): obj is PossibleCanvas {
   return obj !== null && typeof obj === "object" && "toDataURL" in obj;
 }
 
 function isMediaBundle(obj: unknown, raw = true): obj is MediaBundle {
   if (obj !== null && typeof obj === "object") {
-    return raw
-      ? true
-      : Object.keys(obj).every((key) => typeof obj[key] === "string");
+    if (raw) {
+      return true;
+    }
+
+    if (typeof obj === "string") {
+      return false;
+    }
+
+    if (Array.isArray(obj)) {
+      return false;
+    }
+
+    return true;
   }
   return false;
 }
