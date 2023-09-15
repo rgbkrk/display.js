@@ -21,16 +21,16 @@ type MediaBundle = {
 
   // TODO(rgbkrk): File an issue on Deno to support `application/.*json` as objects
   //               as currently Deno is only sending strings.
-  "application/json"?: Object; // Note: must be JSON serializable
-  "application/geo+json"?: Object;
-  "application/vdom.v1+json"?: Object;
-  "application/vnd.plotly.v1+json"?: Object;
-  "application/vnd.vega.v5+json"?: Object;
-  "application/vnd.vegalite.v4+json"?: Object;
-  "application/vnd.vegalite.v5+json"?: Object;
+  "application/json"?: object; // Note: must be JSON serializable
+  "application/geo+json"?: object;
+  "application/vdom.v1+json"?: object;
+  "application/vnd.plotly.v1+json"?: object;
+  "application/vnd.vega.v5+json"?: object;
+  "application/vnd.vegalite.v4+json"?: object;
+  "application/vnd.vegalite.v5+json"?: object;
 
   // Must support a catch all for custom mime-types
-  [key: string]: string | Object | undefined;
+  [key: string]: string | object | undefined;
 };
 
 type Displayable = {
@@ -45,7 +45,7 @@ function isCanvasLike(obj: unknown): obj is HTMLCanvasElement {
   return obj !== null && typeof obj === "object" && "toDataURL" in obj;
 }
 
-function isMediaBundle(obj: unknown, raw: boolean = true): obj is MediaBundle {
+function isMediaBundle(obj: unknown, raw = true): obj is MediaBundle {
   if (obj !== null && typeof obj === "object") {
     return raw
       ? true
