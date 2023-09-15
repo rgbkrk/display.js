@@ -41,6 +41,10 @@ function hasDisplaySymbol(obj: unknown): obj is Displayable {
   return obj !== null && typeof obj === "object" && $display in obj;
 }
 
+function isCanvasLike(obj: unknown): obj is HTMLCanvasElement {
+  return obj !== null && typeof obj === "object" && "toDataURL" in obj;
+}
+
 function isMediaBundle(obj: unknown, raw: boolean = true): obj is MediaBundle {
   if (obj !== null && typeof obj === "object") {
     return raw ? true : Object.keys(obj).every(key => typeof obj[key] === "string");
@@ -62,6 +66,23 @@ export function display(obj: unknown, options: DisplayOptions = { raw: true }): 
   // If so, just return it.
   if (hasDisplaySymbol(obj)) {
     return obj;
+  }
+
+  // Check for toDataURL to see if it's possibly a canvas
+  if (isCanvasLike(obj)) {
+    return {
+      [$display]: () => {
+        const dataURL = obj.toDataURL();
+        const parts = dataURL.split(",");
+
+        const mime = parts[0].split(":")[1].split(";")[0];
+        const data = parts[1];
+
+        return {
+          [mime]: data,
+        };
+      },
+    };
   }
 
   if (!options.raw) {
