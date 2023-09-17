@@ -4,6 +4,11 @@ interface DisplayOptions {
   raw?: boolean;
 }
 
+type VegaObject = {
+  $schema: string;
+  [key: string]: unknown;
+};
+
 type MediaBundle = {
   "text/plain"?: string;
   "text/html"?: string;
@@ -25,9 +30,9 @@ type MediaBundle = {
   "application/geo+json"?: object;
   "application/vdom.v1+json"?: object;
   "application/vnd.plotly.v1+json"?: object;
-  "application/vnd.vega.v5+json"?: object;
-  "application/vnd.vegalite.v4+json"?: object;
-  "application/vnd.vegalite.v5+json"?: object;
+  "application/vnd.vega.v5+json"?: VegaObject;
+  "application/vnd.vegalite.v4+json"?: VegaObject;
+  "application/vnd.vegalite.v5+json"?: VegaObject;
 
   // Must support a catch all for custom mime-types
   [key: string]: string | object | undefined;
@@ -44,6 +49,14 @@ function hasDisplaySymbol(obj: unknown): obj is Displayable {
 type PossibleCanvas = {
   toDataURL: () => string;
 };
+
+type PossibleVega = {
+  toSpec: () => VegaObject;
+};
+
+function isVegaLike(obj: unknown): obj is PossibleVega {
+  return obj !== null && typeof obj === "object" && "toSpec" in obj;
+}
 
 function isCanvasLike(obj: unknown): obj is PossibleCanvas {
   return obj !== null && typeof obj === "object" && "toDataURL" in obj;
@@ -66,6 +79,34 @@ function isMediaBundle(obj: unknown, raw = true): obj is MediaBundle {
     return true;
   }
   return false;
+}
+
+function extractVega(obj: PossibleVega): MediaBundle | null {
+  const spec = obj.toSpec();
+
+  if (!("$schema" in spec)) {
+    return null;
+  }
+  if (typeof spec !== "object") {
+    return null;
+  }
+
+  // Default to Vega 5
+  let mediaType = "application/vnd.vega.v5+json";
+
+  // Determine spec based on spec.$schema
+  // https://vega.github.io/vega-lite/docs/spec.html#top-level-properties
+  if (spec.$schema === "https://vega.github.io/schema/vega-lite/v4.json") {
+    mediaType = "application/vnd.vegalite.v4+json";
+  } else if (
+    spec.$schema === "https://vega.github.io/schema/vega-lite/v5.json"
+  ) {
+    mediaType = "application/vnd.vegalite.v5+json";
+  }
+
+  return {
+    [mediaType]: spec,
+  };
 }
 
 /**
@@ -102,6 +143,15 @@ export function display(
         };
       },
     };
+  }
+
+  if (isVegaLike(obj)) {
+    const vegaBundle = extractVega(obj);
+    if (vegaBundle) {
+      return {
+        [$display]: () => vegaBundle,
+      };
+    }
   }
 
   if (!options.raw) {
