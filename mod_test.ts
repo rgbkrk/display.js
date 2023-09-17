@@ -1,9 +1,11 @@
-import { assertEquals } from "https://deno.land/std@0.201.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertExists,
+} from "https://deno.land/std@0.201.0/assert/mod.ts";
 
-import { createCanvas } from "https://deno.land/x/canvas/mod.ts";
+import { createCanvas } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
 
 import { display, $display } from "./mod.ts";
-import { assertExists } from "https://deno.land/std@0.201.0/assert/assert_exists.ts";
 
 Deno.test("display() returns a MediaBundle", () => {
   const bundle = display({
