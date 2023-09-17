@@ -4,6 +4,11 @@ interface DisplayOptions {
   raw?: boolean;
 }
 
+type VegaObject = {
+  $schema: string;
+  [key: string]: unknown;
+};
+
 type MediaBundle = {
   "text/plain"?: string;
   "text/html"?: string;
@@ -25,9 +30,9 @@ type MediaBundle = {
   "application/geo+json"?: object;
   "application/vdom.v1+json"?: object;
   "application/vnd.plotly.v1+json"?: object;
-  "application/vnd.vega.v5+json"?: object;
-  "application/vnd.vegalite.v4+json"?: object;
-  "application/vnd.vegalite.v5+json"?: object;
+  "application/vnd.vega.v5+json"?: VegaObject;
+  "application/vnd.vegalite.v4+json"?: VegaObject;
+  "application/vnd.vegalite.v5+json"?: VegaObject;
 
   // Must support a catch all for custom mime-types
   [key: string]: string | object | undefined;
@@ -46,7 +51,7 @@ type PossibleCanvas = {
 };
 
 type PossibleVega = {
-  toSpec: () => { $schema: string };
+  toSpec: () => VegaObject;
 };
 
 function isVegaLike(obj: unknown): obj is PossibleVega {
