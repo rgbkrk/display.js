@@ -1,112 +1,80 @@
-export const $display = Symbol.for("Jupyter.display");
+import {
+  $display,
+  Displayable,
+  format,
+  makeDisplayable,
+  MediaBundle,
+} from "./format.ts";
+
+export { $display };
 
 interface DisplayOptions {
   raw?: boolean;
 }
 
-type VegaObject = {
-  $schema: string;
-  [key: string]: unknown;
-};
+/**
+ * This function creates a tagged template function for a given media type.
+ * The tagged template function takes a template string and returns a displayable object.
+ *
+ * @param mediatype - The media type for the tagged template function.
+ * @returns A function that takes a template string and returns a displayable object.
+ */
+function createTaggedTemplate(mediatype: string) {
+  return (strings: TemplateStringsArray, ...values: unknown[]) => {
+    const payload = strings.reduce(
+      (acc, string, i) => acc + string + (values[i] || ""),
+      "",
+    );
 
-type MediaBundle = {
-  "text/plain"?: string;
-  "text/html"?: string;
-  "image/svg+xml"?: string;
-  "text/markdown"?: string;
-  "application/javascript"?: string;
-
-  // Images (sadly, per Jupyter spec) must be base64 encoded. We could _allow_
-  // accepting Uint8Array or ArrayBuffer within `display` calls, however we still
-  // need to encode them for jupyter.
-  "image/png"?: string; // WISH: Uint8Array | ArrayBuffer
-  "image/jpeg"?: string; // WISH: Uint8Array | ArrayBuffer
-  "image/gif"?: string; // WISH: Uint8Array | ArrayBuffer
-  "application/pdf"?: string; // WISH: Uint8Array | ArrayBuffer
-
-  // TODO(rgbkrk): File an issue on Deno to support `application/.*json` as objects
-  //               as currently Deno is only sending strings.
-  "application/json"?: object; // Note: must be JSON serializable
-  "application/geo+json"?: object;
-  "application/vdom.v1+json"?: object;
-  "application/vnd.plotly.v1+json"?: object;
-  "application/vnd.vega.v5+json"?: VegaObject;
-  "application/vnd.vegalite.v4+json"?: VegaObject;
-  "application/vnd.vegalite.v5+json"?: VegaObject;
-
-  // Must support a catch all for custom mime-types
-  [key: string]: string | object | undefined;
-};
-
-type Displayable = {
-  [$display]: () => MediaBundle;
-};
-
-function hasDisplaySymbol(obj: unknown): obj is Displayable {
-  return obj !== null && typeof obj === "object" && $display in obj;
-}
-
-type PossibleCanvas = {
-  toDataURL: () => string;
-};
-
-type PossibleVega = {
-  toSpec: () => VegaObject;
-};
-
-function isVegaLike(obj: unknown): obj is PossibleVega {
-  return obj !== null && typeof obj === "object" && "toSpec" in obj;
-}
-
-function isCanvasLike(obj: unknown): obj is PossibleCanvas {
-  return obj !== null && typeof obj === "object" && "toDataURL" in obj;
-}
-
-function isMediaBundle(obj: unknown, raw = true): obj is MediaBundle {
-  if (obj !== null && typeof obj === "object") {
-    if (raw) {
-      return true;
-    }
-
-    if (typeof obj === "string") {
-      return false;
-    }
-
-    if (Array.isArray(obj)) {
-      return false;
-    }
-
-    return true;
-  }
-  return false;
-}
-
-function extractVega(obj: PossibleVega): MediaBundle | null {
-  const spec = obj.toSpec();
-
-  if (!("$schema" in spec)) {
-    return null;
-  }
-  if (typeof spec !== "object") {
-    return null;
-  }
-
-  // Default to Vega 5
-  let mediaType = "application/vnd.vega.v5+json";
-
-  // Determine spec based on spec.$schema
-  // https://vega.github.io/vega-lite/docs/spec.html#top-level-properties
-  if (spec.$schema === "https://vega.github.io/schema/vega-lite/v4.json") {
-    mediaType = "application/vnd.vegalite.v4+json";
-  } else if (
-    spec.$schema === "https://vega.github.io/schema/vega-lite/v5.json"
-  ) {
-    mediaType = "application/vnd.vegalite.v5+json";
-  }
-
-  return {
-    [mediaType]: spec,
+    return makeDisplayable({ [mediatype]: payload });
   };
+}
+
+/**
+ * Markdown Tagged Template Function.
+ *
+ * Takes a template string and returns a displayable object for Jupyter frontends.
+ *
+ * Example usage:
+ *
+ * md`# Notebooks in TypeScript via Deno ![Deno logo](https://github.com/denoland.png?size=32)
+ *
+ * * TypeScript ${Deno.version.typescript}
+ * * V8 ${Deno.version.v8}
+ * * Deno ${Deno.version.deno} 🔜 1.37.0
+ *
+ * Interactive compute with Jupyter _built into Deno_!
+ * `
+ */
+export const md = createTaggedTemplate("text/markdown");
+
+/**
+ * HTML Tagged Template Function.
+ *
+ * Takes a template string and returns a displayable object for Jupyter frontends.
+ *
+ * Example usage:
+ *
+ * html`<h1>Hello, world!</h1>`
+ */
+export const html = createTaggedTemplate("text/html");
+
+export const plain = createTaggedTemplate("text/plain");
+export const js = createTaggedTemplate("application/javascript");
+
+function isMediaBundle(obj: unknown): obj is MediaBundle {
+  if (obj == null || typeof obj !== "object" || Array.isArray(obj)) {
+    return false;
+  }
+
+  // Check if all keys are strings
+  for (const key in obj) {
+    if (typeof key !== "string") {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -114,57 +82,33 @@ function extractVega(obj: PossibleVega): MediaBundle | null {
  * Mimics the behavior of IPython's display(obj, raw=True) while working with
  * the limitations of the 1.37 release of Deno (for now).
  *
+ * Given that we don't have a direct way to create `display_data` (yet) in Deno,
+ * at least from userspace, this function can only be used as the result in a cell.
+ *
  * @param obj - The object to be displayed
  * @param options - Display options with a default { raw: true }
- * @returns A media bundle object
+ * @returns An object that Deno can display
  */
 export function display(
   obj: unknown,
-  options: DisplayOptions = { raw: true }
-): Displayable {
-  // Check to see if the obj already has a Symbol.for("Jupyter.display") method on it
-  // If so, just return it.
-  if (hasDisplaySymbol(obj)) {
+  options: DisplayOptions = { raw: true },
+): Displayable | unknown {
+  // Pass undefined and null through
+  if (obj == null) {
     return obj;
   }
 
-  // Check for toDataURL to see if it's possibly a canvas
-  if (isCanvasLike(obj)) {
-    return {
-      [$display]: () => {
-        const dataURL = obj.toDataURL();
-        const parts = dataURL.split(",");
+  const displayable = format(obj);
 
-        const mime = parts[0].split(":")[1].split(";")[0];
-        const data = parts[1];
-
-        return {
-          [mime]: data,
-        };
-      },
-    };
+  if (displayable) {
+    return displayable;
   }
 
-  if (isVegaLike(obj)) {
-    const vegaBundle = extractVega(obj);
-    if (vegaBundle) {
-      return {
-        [$display]: () => vegaBundle,
-      };
-    }
-  }
-
-  if (!options.raw) {
-    throw new Error("Only raw=true is supported at this time.");
-  }
-
-  if (isMediaBundle(obj, options.raw)) {
-    return {
-      [$display]: () => obj,
-    };
+  if (isMediaBundle(obj) && options.raw) {
+    return makeDisplayable(obj);
   }
 
   throw new Error(
-    "When using raw=true, the object must be a collection of media types."
+    "Object not supported. Please file an issue on https://github.com/rgbkrk/display.js",
   );
 }
