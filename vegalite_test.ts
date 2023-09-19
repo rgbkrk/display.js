@@ -1,7 +1,12 @@
 import vl from "npm:vega-lite-api";
 
-import { display, $display } from "./mod.ts";
-import { assertEquals } from "https://deno.land/std@0.201.0/assert/mod.ts";
+import { $display, format } from "./format.ts";
+import {
+  assert,
+  assertEquals,
+} from "https://deno.land/std@0.201.0/assert/mod.ts";
+
+import { hasDisplaySymbol } from "./format.ts";
 
 Deno.test("display(vl_plot) returns a MediaBundle", () => {
   const plot = vl
@@ -20,10 +25,11 @@ Deno.test("display(vl_plot) returns a MediaBundle", () => {
     .encode(
       vl.x().fieldQ("b"),
       vl.y().fieldN("a"),
-      vl.tooltip([vl.fieldQ("b"), vl.fieldN("a")])
+      vl.tooltip([vl.fieldQ("b"), vl.fieldN("a")]),
     );
 
-  const bundle = display(plot);
+  const bundle = format(plot);
+  assert(hasDisplaySymbol(bundle));
 
   const result = bundle[$display]();
 
