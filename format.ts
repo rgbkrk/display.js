@@ -104,13 +104,23 @@ type Schema = {
 };
 
 function isDataFrameLike(obj: unknown): obj is PossibleDataFrame {
-  return (
-    obj !== null &&
-    typeof obj === "object" &&
-    "schema" in obj &&
-    "head" in obj &&
-    "toRecords" in obj
-  );
+  const isObject = obj !== null && typeof obj === "object";
+
+  if (!isObject) {
+    return false;
+  }
+
+  // For some reason we can't perform the typical "schema" in obj
+  // check. To make typescript ok with this though, we
+  // need to assert the object as PossibleDataFrame before checking its properties.
+  const df = obj as PossibleDataFrame;
+
+  return df.schema !== undefined &&
+    typeof df.schema === "object" &&
+    df.head !== undefined &&
+    typeof df.head === "function" &&
+    df.toRecords !== undefined &&
+    typeof df.toRecords === "function";
 }
 
 /**
