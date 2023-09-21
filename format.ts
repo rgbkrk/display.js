@@ -82,6 +82,33 @@ function isCanvasLike(obj: unknown): obj is PossibleCanvas {
   return obj !== null && typeof obj === "object" && "toDataURL" in obj;
 }
 
+/** SVG **/
+
+type PossibleSVG = {
+  outerHTML: string;
+};
+
+function isSVGElementLike(obj: unknown): obj is PossibleSVG {
+  return obj !== null &&
+    typeof obj === "object" &&
+    "outerHTML" in obj &&
+    typeof obj.outerHTML === "string" &&
+    obj.outerHTML.startsWith("<svg");
+}
+/** HTML **/
+
+type PossibleHTML = {
+  outerHTML: string;
+};
+
+function isHTMLElementLike(obj: unknown): obj is PossibleHTML {
+  return obj !== null &&
+    typeof obj === "object" &&
+    "outerHTML" in obj &&
+    typeof obj.outerHTML === "string";
+  // NOTE: Unlike the SVG check, we will allow any HTML Fragment
+}
+
 /**
  * Displayable Interface
  */
@@ -91,8 +118,12 @@ export type Displayable = {
 };
 
 export function hasDisplaySymbol(obj: unknown): obj is Displayable {
-  return obj !== null && typeof obj === "object" && $display in obj &&
-    typeof obj[$display] === "function";
+  return (
+    obj !== null &&
+    typeof obj === "object" &&
+    $display in obj &&
+    typeof obj[$display] === "function"
+  );
 }
 
 export function makeDisplayable(obj: MediaBundle) {
@@ -110,9 +141,7 @@ export function makeDisplayable(obj: MediaBundle) {
  * @param options - Display options with a default { raw: true }
  * @returns A media bundle object
  */
-export function format(
-  obj: unknown,
-): Displayable | undefined {
+export function format(obj: unknown): Displayable | undefined {
   // Check to see if the obj already has a Symbol.for("Jupyter.display") method on it
   // If so, just return it.
   if (hasDisplaySymbol(obj)) {
@@ -141,6 +170,20 @@ export function format(
     if (vegaBundle) {
       return makeDisplayable(vegaBundle);
     }
+  }
+
+  // Since SVG is valid HTML, we first check for an SVG element
+  // Then check for an HTML element
+  if (isSVGElementLike(obj)) {
+    return makeDisplayable({
+      "image/svg+xml": obj.outerHTML,
+    });
+  }
+
+  if (isHTMLElementLike(obj)) {
+    return makeDisplayable({
+      "text/html": obj.outerHTML,
+    });
   }
 
   // Could not determine a specific format
