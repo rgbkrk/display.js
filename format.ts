@@ -72,6 +72,145 @@ function extractVega(obj: PossibleVega): MediaBundle | null {
   };
 }
 
+/** Polars */
+
+// This is a quick and dirty version to show a prototype before
+// showing the nodejs-polars folks or others.
+
+type ColType = {
+  toJSON: () => { DataType: string };
+};
+
+type PossibleDataFrame = {
+  schema: {
+    [key: string]: ColType;
+  };
+
+  head: (n: number | undefined) => PossibleDataFrame;
+  toRecords: () => Array<Record>;
+};
+
+type Field = {
+  name: string;
+  type: string;
+};
+
+type Record = {
+  [key: string]: unknown;
+};
+
+type Schema = {
+  fields: Array<Field>;
+};
+
+function isDataFrameLike(obj: unknown): obj is PossibleDataFrame {
+  const isObject = obj !== null && typeof obj === "object";
+
+  if (!isObject) {
+    return false;
+  }
+
+  // For some reason we can't perform the typical "schema" in obj
+  // check. To make typescript ok with this though, we
+  // need to assert the object as PossibleDataFrame before checking its properties.
+  const df = obj as PossibleDataFrame;
+
+  return df.schema !== undefined &&
+    typeof df.schema === "object" &&
+    df.head !== undefined &&
+    typeof df.head === "function" &&
+    df.toRecords !== undefined &&
+    typeof df.toRecords === "function";
+}
+
+/**
+ * Map Polars DataType to JSON Schema data types.
+ * @param dataType - The Polars DataType.
+ * @returns The corresponding JSON Schema data type.
+ */
+function mapPolarsTypeToJSONSchema(colType: ColType): string {
+  const typeMapping: { [key: string]: string } = {
+    "Null": "null",
+    "Bool": "boolean",
+    "Int8": "integer",
+    "Int16": "integer",
+    "Int32": "integer",
+    "Int64": "integer",
+    "UInt8": "integer",
+    "UInt16": "integer",
+    "UInt32": "integer",
+    "UInt64": "integer",
+    "Float32": "number",
+    "Float64": "number",
+    "Date": "string",
+    "Datetime": "string",
+    "Utf8": "string",
+    "Categorical": "string",
+    "List": "array",
+    "Struct": "object",
+  };
+  // These colTypes are weird. When you console.dir or console.log them
+  // they show a `DataType` field, however you can't access it directly until you
+  // convert it to JSON
+  // #justRustNodeDenoThings
+  const dataType = colType.toJSON()["DataType"];
+  return typeMapping[dataType] || "string";
+}
+
+export function extractDataFrame(df: PossibleDataFrame) {
+  const fields: Array<Field> = [];
+  const schema: Schema = {
+    fields,
+  };
+  let data = [];
+
+  // Convert DataFrame schema to Tabular DataResource schema
+  for (const [colName, colType] of Object.entries(df.schema)) {
+    const dataType = mapPolarsTypeToJSONSchema(colType);
+
+    schema.fields.push({
+      name: colName,
+      type: dataType,
+    });
+  }
+
+  // Convert DataFrame data to row-oriented JSON
+  //
+  // TODO: Determine how to get the polars format max rows
+  //       Since pl.setTblRows just sets env var POLARS_FMT_MAX_ROWS,
+  //       we probably just have to pick a number for now.
+  //
+  data = df.head(50).toRecords();
+
+  // Enough generated for the Tabular Data Resource Schema, on to
+  // creating an HTML table
+
+  let htmlTable = "<table>";
+
+  // Add table headers
+  htmlTable += "<thead><tr>";
+  schema.fields.forEach((field) => {
+    htmlTable += `<th>${field.name}</th>`;
+  });
+  htmlTable += "</tr></thead>";
+
+  // Add table data
+  htmlTable += "<tbody>";
+  df.head(10).toRecords().forEach((row) => {
+    htmlTable += "<tr>";
+    schema.fields.forEach((field) => {
+      htmlTable += `<td>${row[field.name]}</td>`;
+    });
+    htmlTable += "</tr>";
+  });
+  htmlTable += "</tbody></table>";
+
+  return {
+    "application/vnd.dataresource+json": { data, schema },
+    "text/html": htmlTable,
+  };
+}
+
 /** CANVAS **/
 
 type PossibleCanvas = {
@@ -169,6 +308,13 @@ export function format(obj: unknown): Displayable | undefined {
     const vegaBundle = extractVega(obj);
     if (vegaBundle) {
       return makeDisplayable(vegaBundle);
+    }
+  }
+
+  if (isDataFrameLike(obj)) {
+    const dataFrameBundle = extractDataFrame(obj);
+    if (dataFrameBundle) {
+      return makeDisplayable(dataFrameBundle);
     }
   }
 
