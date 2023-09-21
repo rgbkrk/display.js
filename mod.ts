@@ -62,6 +62,19 @@ export const html = createTaggedTemplate("text/html");
 export const plain = createTaggedTemplate("text/plain");
 export const js = createTaggedTemplate("application/javascript");
 
+/**
+ * SVG Tagged Template Function.
+ *
+ * Takes a template string and returns a displayable object for Jupyter frontends.
+ *
+ * Example usage:
+ *
+ * svg`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+ *      <circle cx="50" cy="50" r="40" stroke="green" stroke-width="4" fill="yellow" />
+ *    </svg>`
+ */
+export const svg = createTaggedTemplate("image/svg+xml");
+
 function isMediaBundle(obj: unknown): obj is MediaBundle {
   if (obj == null || typeof obj !== "object" || Array.isArray(obj)) {
     return false;
