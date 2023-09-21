@@ -95,6 +95,19 @@ function isSVGElementLike(obj: unknown): obj is PossibleSVG {
     typeof obj.outerHTML === "string" &&
     obj.outerHTML.startsWith("<svg");
 }
+/** HTML **/
+
+type PossibleHTML = {
+  outerHTML: string;
+};
+
+function isHTMLElementLike(obj: unknown): obj is PossibleHTML {
+  return obj !== null &&
+    typeof obj === "object" &&
+    "outerHTML" in obj &&
+    typeof obj.outerHTML === "string";
+  // NOTE: Unlike the SVG check, we will allow any HTML Fragment
+}
 
 /**
  * Displayable Interface
@@ -159,9 +172,17 @@ export function format(obj: unknown): Displayable | undefined {
     }
   }
 
+  // Since SVG is valid HTML, we first check for an SVG element
+  // Then check for an HTML element
   if (isSVGElementLike(obj)) {
     return makeDisplayable({
       "image/svg+xml": obj.outerHTML,
+    });
+  }
+
+  if (isHTMLElementLike(obj)) {
+    return makeDisplayable({
+      "text/html": obj.outerHTML,
     });
   }
 
