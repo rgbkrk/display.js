@@ -72,6 +72,75 @@ function extractVega(obj: PossibleVega): MediaBundle | null {
   };
 }
 
+/** Polars */
+
+// This is a quick and dirty version to show a prototype before
+// showing the nodejs-polars folks or others.
+
+type ColType = {
+  toJSON: () => { DataType: string };
+};
+
+type PossibleDataFrame = {
+  schema: {
+    [key: string]: ColType;
+  };
+
+  head: (n: number | undefined) => PossibleDataFrame;
+  toRecords: () => Array<Record>;
+};
+
+type Field = {
+  name: string;
+  type: string;
+};
+
+type Record = {
+  [key: string]: unknown;
+};
+
+type Schema = {
+  fields: Array<Field>;
+};
+
+function isDataFrameLike(obj: unknown): obj is PossibleDataFrame {
+  return (
+    obj !== null &&
+    typeof obj === "object" &&
+    "schema" in obj &&
+    "head" in obj &&
+    "toRecords" in obj
+  );
+}
+
+export function extractDataFrame(df: PossibleDataFrame) {
+  const fields: Array<Field> = [];
+  const schema: Schema = {
+    fields,
+  };
+  let data = [];
+
+  // Convert DataFrame schema to Tabular DataResource schema
+  for (const [colName, colType] of Object.entries(df.schema)) {
+    // These colTypes are weird. When you console.dir or console.log them
+    // they show a `DataType` field, however you can't access it directly until you
+    // convert it to JSON
+    const dataType = colType.toJSON().DataType;
+
+    schema.fields.push({
+      name: colName,
+      type: dataType === "Utf8" ? "string" : "number",
+    });
+  }
+
+  // Convert DataFrame data to row-oriented JSON
+  data = df.head(10).toRecords();
+
+  return {
+    "application/vnd.dataresource+json": { data, schema },
+  };
+}
+
 /** CANVAS **/
 
 type PossibleCanvas = {
@@ -169,6 +238,13 @@ export function format(obj: unknown): Displayable | undefined {
     const vegaBundle = extractVega(obj);
     if (vegaBundle) {
       return makeDisplayable(vegaBundle);
+    }
+  }
+
+  if (isDataFrameLike(obj)) {
+    const dataFrameBundle = extractDataFrame(obj);
+    if (dataFrameBundle) {
+      return makeDisplayable(dataFrameBundle);
     }
   }
 
