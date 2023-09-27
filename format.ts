@@ -272,15 +272,30 @@ export function makeDisplayable(obj: MediaBundle) {
 }
 
 /**
- * Display function for Jupyter Deno Kernel.
- * Mimics the behavior of IPython's display(obj, raw=True) while working with
- * the limitations of the 1.37 release of Deno (for now).
+ * Format an object for displaying in Deno
  *
  * @param obj - The object to be displayed
- * @param options - Display options with a default { raw: true }
- * @returns A media bundle object
+ * @returns Displayable or undefined
  */
 export function format(obj: unknown): Displayable | undefined {
+  if (obj === null) {
+    return makeDisplayable({
+      "text/plain": "null",
+    });
+  }
+
+  if (typeof obj === "boolean" || typeof obj === "number") {
+    return makeDisplayable({
+      "text/plain": obj.toString(),
+    });
+  }
+
+  if (typeof obj === "string") {
+    return makeDisplayable({
+      "text/plain": `"${obj}"`,
+    });
+  }
+
   // Check to see if the obj already has a Symbol.for("Jupyter.display") method on it
   // If so, just return it.
   if (hasDisplaySymbol(obj)) {
@@ -332,6 +347,7 @@ export function format(obj: unknown): Displayable | undefined {
     });
   }
 
-  // Could not determine a specific format
-  return;
+  throw new Error(
+    "Object not supported. Please file an issue on https://github.com/rgbkrk/display.js",
+  );
 }

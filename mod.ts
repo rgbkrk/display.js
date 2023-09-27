@@ -12,6 +12,22 @@ interface DisplayOptions {
   raw?: boolean;
 }
 
+type DenoJupyter = typeof Deno & {
+  jupyter: {
+    broadcast(
+      msg_type: string,
+      content: { [key: string]: object },
+    ): Promise<void>;
+  };
+};
+
+function hasJupyterBroadcast(d: typeof Deno): d is DenoJupyter {
+  return "jupyter" in d &&
+    d?.jupyter != null &&
+    typeof d?.jupyter == "object" &&
+    "broadcast" in d?.jupyter;
+}
+
 /**
  * This function creates a tagged template function for a given media type.
  * The tagged template function takes a template string and returns a displayable object.
@@ -90,6 +106,9 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
   return true;
 }
 
+// TODO: If possible, expose a synchronous display for Deno version 1.37.0 and an asynchronous display for 1.37.1
+// Constraints: exports themselves can't be dynamically updated with ESM
+
 /**
  * Display function for Jupyter Deno Kernel.
  * Mimics the behavior of IPython's display(obj, raw=True) while working with
@@ -111,17 +130,28 @@ export function display(
     return obj;
   }
 
-  const displayable = format(obj);
+  let displayable = format(obj);
 
-  if (displayable) {
-    return displayable;
+  if (!displayable && isMediaBundle(obj) && options.raw) {
+    displayable = makeDisplayable(obj);
   }
 
-  if (isMediaBundle(obj) && options.raw) {
-    return makeDisplayable(obj);
+  if (!displayable) {
+    return;
   }
 
-  throw new Error(
-    "Object not supported. Please file an issue on https://github.com/rgbkrk/display.js",
-  );
+  // Type guards don't work on global namespaces so we have to assign it, check it, and use it.
+  const dj = Deno;
+  if (hasJupyterBroadcast(dj)) {
+    const bundle = displayable[$display]();
+    const p = dj.jupyter.broadcast("display_data", {
+      data: bundle,
+      metadata: {},
+    });
+
+    p.then(() => {});
+    return;
+  }
+
+  return displayable;
 }
