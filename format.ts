@@ -337,6 +337,7 @@ export function format(obj: unknown): Displayable | undefined {
     });
   }
 
+  // TODO (rgbkrk): Create colored output like Deno execute_result has
   return makeDisplayable({
     "text/plain": Deno.inspect(obj),
   });
