@@ -11,10 +11,13 @@ import { $display, display } from "./mod.ts";
 import { hasDisplaySymbol } from "./format.ts";
 
 Deno.test("display() returns a MediaBundle", () => {
-  const bundle = display({
-    "image/png": "data:image/png;base64,abc123",
-    "text/plain": "hello world",
-  });
+  const bundle = display(
+    {
+      "image/png": "data:image/png;base64,abc123",
+      "text/plain": "hello world",
+    },
+    { raw: true }
+  );
 
   assert(bundle != null && typeof bundle == "object");
 
