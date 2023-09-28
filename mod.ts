@@ -18,7 +18,9 @@ type DenoJupyter = typeof Deno & {
   jupyter: {
     broadcast(
       msg_type: string,
-      content: { [key: string]: object }
+      content: { [key: string]: object },
+      metadata?: { [key: string]: object },
+      buffers?: ArrayBuffer[]
     ): Promise<void>;
   };
 };
@@ -28,7 +30,8 @@ function hasJupyterBroadcast(d: typeof Deno): d is DenoJupyter {
     "jupyter" in d &&
     d?.jupyter != null &&
     typeof d?.jupyter == "object" &&
-    "broadcast" in d?.jupyter
+    "broadcast" in d?.jupyter &&
+    typeof d?.jupyter?.broadcast == "function"
   );
 }
 
@@ -127,46 +130,40 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
  */
 export function display(
   obj: unknown,
-  options: DisplayOptions = { raw: true, update: false }
-): Displayable | unknown {
-  // Pass undefined and null through
-  if (obj == null) {
-    return obj;
-  }
+  options: DisplayOptions = { raw: false, update: false }
+): Displayable | Promise<void> | undefined {
+  // Always format first to detect if we have a displayable object
+  let displayable;
 
-  let displayable = format(obj);
-
-  if (!displayable && isMediaBundle(obj) && options.raw) {
+  if (options.raw && isMediaBundle(obj)) {
     displayable = makeDisplayable(obj);
+  } else {
+    displayable = format(obj);
   }
 
-  if (!displayable) {
-    return;
-  }
-
-  // Type guards don't work on global namespaces so we have to assign it, check it, and use it.
+  // Type guards don't work on global namespaces so we have to grab `Deno`
+  // as a separate variable then use the type guard
   const jeno = Deno;
-  if (hasJupyterBroadcast(jeno)) {
-    const bundle = displayable[$display]();
 
-    let message_type = "display_data";
-
-    if (options.update) {
-      message_type = "update_display_data";
-    }
-    let transient = {};
-    if (options.display_id) {
-      transient = { display_id: options.display_id };
-    }
-
-    const _p = jeno.jupyter.broadcast(message_type, {
-      data: bundle,
-      metadata: {},
-      transient,
-    });
-
-    return;
+  if (!hasJupyterBroadcast(jeno)) {
+    return displayable;
   }
 
-  return displayable;
+  const bundle = displayable[$display]();
+
+  let message_type = "display_data";
+
+  if (options.update) {
+    message_type = "update_display_data";
+  }
+  let transient = {};
+  if (options.display_id) {
+    transient = { display_id: options.display_id };
+  }
+
+  return jeno.jupyter.broadcast(message_type, {
+    data: bundle,
+    metadata: {},
+    transient,
+  });
 }

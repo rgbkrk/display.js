@@ -273,7 +273,7 @@ export function hasDisplaySymbol(obj: unknown): obj is Displayable {
   );
 }
 
-export function makeDisplayable(obj: MediaBundle) {
+export function makeDisplayable(obj: MediaBundle): Displayable {
   return {
     [$display]: () => obj,
   };
@@ -285,7 +285,7 @@ export function makeDisplayable(obj: MediaBundle) {
  * @param obj - The object to be displayed
  * @returns Displayable or undefined
  */
-export function format(obj: unknown): Displayable | undefined {
+export function format(obj: unknown): Displayable {
   // Check to see if the obj already has a Symbol.for("Jupyter.display") method on it
   // If so, just return it.
   if (hasDisplaySymbol(obj)) {
