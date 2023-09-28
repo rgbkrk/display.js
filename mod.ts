@@ -10,22 +10,26 @@ export { $display };
 
 interface DisplayOptions {
   raw?: boolean;
+  update?: boolean;
+  display_id?: string;
 }
 
 type DenoJupyter = typeof Deno & {
   jupyter: {
     broadcast(
       msg_type: string,
-      content: { [key: string]: object },
+      content: { [key: string]: object }
     ): Promise<void>;
   };
 };
 
 function hasJupyterBroadcast(d: typeof Deno): d is DenoJupyter {
-  return "jupyter" in d &&
+  return (
+    "jupyter" in d &&
     d?.jupyter != null &&
     typeof d?.jupyter == "object" &&
-    "broadcast" in d?.jupyter;
+    "broadcast" in d?.jupyter
+  );
 }
 
 /**
@@ -39,7 +43,7 @@ function createTaggedTemplate(mediatype: string) {
   return (strings: TemplateStringsArray, ...values: unknown[]) => {
     const payload = strings.reduce(
       (acc, string, i) => acc + string + (values[i] || ""),
-      "",
+      ""
     );
 
     return makeDisplayable({ [mediatype]: payload });
@@ -123,7 +127,7 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
  */
 export function display(
   obj: unknown,
-  options: DisplayOptions = { raw: true },
+  options: DisplayOptions = { raw: true, update: false }
 ): Displayable | unknown {
   // Pass undefined and null through
   if (obj == null) {
@@ -141,15 +145,26 @@ export function display(
   }
 
   // Type guards don't work on global namespaces so we have to assign it, check it, and use it.
-  const dj = Deno;
-  if (hasJupyterBroadcast(dj)) {
+  const jeno = Deno;
+  if (hasJupyterBroadcast(jeno)) {
     const bundle = displayable[$display]();
-    const p = dj.jupyter.broadcast("display_data", {
+
+    let message_type = "display_data";
+
+    if (options.update) {
+      message_type = "update_display_data";
+    }
+    let transient = {};
+    if (options.display_id) {
+      transient = { display_id: options.display_id };
+    }
+
+    const p = jeno.jupyter.broadcast(message_type, {
       data: bundle,
       metadata: {},
+      transient,
     });
 
-    p.then(() => {});
     return;
   }
 
