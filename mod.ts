@@ -146,6 +146,8 @@ export function display(
   const jeno = Deno;
 
   if (!hasJupyterBroadcast(jeno)) {
+    // The "old" interface for `display()` was to return a Displayable
+    // as the last expression in a cell in Deno 1.37.0.
     return displayable;
   }
 
