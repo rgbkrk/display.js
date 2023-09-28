@@ -159,7 +159,7 @@ export function display(
       transient = { display_id: options.display_id };
     }
 
-    const p = jeno.jupyter.broadcast(message_type, {
+    const _p = jeno.jupyter.broadcast(message_type, {
       data: bundle,
       metadata: {},
       transient,
