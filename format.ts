@@ -115,12 +115,14 @@ function isDataFrameLike(obj: unknown): obj is PossibleDataFrame {
   // need to assert the object as PossibleDataFrame before checking its properties.
   const df = obj as PossibleDataFrame;
 
-  return df.schema !== undefined &&
+  return (
+    df.schema !== undefined &&
     typeof df.schema === "object" &&
     df.head !== undefined &&
     typeof df.head === "function" &&
     df.toRecords !== undefined &&
-    typeof df.toRecords === "function";
+    typeof df.toRecords === "function"
+  );
 }
 
 /**
@@ -130,24 +132,24 @@ function isDataFrameLike(obj: unknown): obj is PossibleDataFrame {
  */
 function mapPolarsTypeToJSONSchema(colType: ColType): string {
   const typeMapping: { [key: string]: string } = {
-    "Null": "null",
-    "Bool": "boolean",
-    "Int8": "integer",
-    "Int16": "integer",
-    "Int32": "integer",
-    "Int64": "integer",
-    "UInt8": "integer",
-    "UInt16": "integer",
-    "UInt32": "integer",
-    "UInt64": "integer",
-    "Float32": "number",
-    "Float64": "number",
-    "Date": "string",
-    "Datetime": "string",
-    "Utf8": "string",
-    "Categorical": "string",
-    "List": "array",
-    "Struct": "object",
+    Null: "null",
+    Bool: "boolean",
+    Int8: "integer",
+    Int16: "integer",
+    Int32: "integer",
+    Int64: "integer",
+    UInt8: "integer",
+    UInt16: "integer",
+    UInt32: "integer",
+    UInt64: "integer",
+    Float32: "number",
+    Float64: "number",
+    Date: "string",
+    Datetime: "string",
+    Utf8: "string",
+    Categorical: "string",
+    List: "array",
+    Struct: "object",
   };
   // These colTypes are weird. When you console.dir or console.log them
   // they show a `DataType` field, however you can't access it directly until you
@@ -196,13 +198,15 @@ export function extractDataFrame(df: PossibleDataFrame) {
 
   // Add table data
   htmlTable += "<tbody>";
-  df.head(10).toRecords().forEach((row) => {
-    htmlTable += "<tr>";
-    schema.fields.forEach((field) => {
-      htmlTable += `<td>${row[field.name]}</td>`;
+  df.head(10)
+    .toRecords()
+    .forEach((row) => {
+      htmlTable += "<tr>";
+      schema.fields.forEach((field) => {
+        htmlTable += `<td>${row[field.name]}</td>`;
+      });
+      htmlTable += "</tr>";
     });
-    htmlTable += "</tr>";
-  });
   htmlTable += "</tbody></table>";
 
   return {
@@ -228,11 +232,13 @@ type PossibleSVG = {
 };
 
 function isSVGElementLike(obj: unknown): obj is PossibleSVG {
-  return obj !== null &&
+  return (
+    obj !== null &&
     typeof obj === "object" &&
     "outerHTML" in obj &&
     typeof obj.outerHTML === "string" &&
-    obj.outerHTML.startsWith("<svg");
+    obj.outerHTML.startsWith("<svg")
+  );
 }
 /** HTML **/
 
@@ -241,10 +247,12 @@ type PossibleHTML = {
 };
 
 function isHTMLElementLike(obj: unknown): obj is PossibleHTML {
-  return obj !== null &&
+  return (
+    obj !== null &&
     typeof obj === "object" &&
     "outerHTML" in obj &&
-    typeof obj.outerHTML === "string";
+    typeof obj.outerHTML === "string"
+  );
   // NOTE: Unlike the SVG check, we will allow any HTML Fragment
 }
 
@@ -265,22 +273,19 @@ export function hasDisplaySymbol(obj: unknown): obj is Displayable {
   );
 }
 
-export function makeDisplayable(obj: MediaBundle) {
+export function makeDisplayable(obj: MediaBundle): Displayable {
   return {
     [$display]: () => obj,
   };
 }
 
 /**
- * Display function for Jupyter Deno Kernel.
- * Mimics the behavior of IPython's display(obj, raw=True) while working with
- * the limitations of the 1.37 release of Deno (for now).
+ * Format an object for displaying in Deno
  *
  * @param obj - The object to be displayed
- * @param options - Display options with a default { raw: true }
- * @returns A media bundle object
+ * @returns Displayable or undefined
  */
-export function format(obj: unknown): Displayable | undefined {
+export function format(obj: unknown): Displayable {
   // Check to see if the obj already has a Symbol.for("Jupyter.display") method on it
   // If so, just return it.
   if (hasDisplaySymbol(obj)) {
@@ -332,6 +337,8 @@ export function format(obj: unknown): Displayable | undefined {
     });
   }
 
-  // Could not determine a specific format
-  return;
+  // TODO (rgbkrk): Create colored output like Deno execute_result has
+  return makeDisplayable({
+    "text/plain": Deno.inspect(obj),
+  });
 }

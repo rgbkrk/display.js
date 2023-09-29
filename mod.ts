@@ -10,6 +10,32 @@ export { $display };
 
 interface DisplayOptions {
   raw?: boolean;
+  update?: boolean;
+  display_id?: string;
+}
+
+type DenoJupyter = typeof Deno & {
+  jupyter: {
+    broadcast(
+      msg_type: string,
+      content: { [key: string]: object },
+      extras?: {
+        metadata?: { [key: string]: object };
+        buffers?: ArrayBuffer[];
+        [key: string]: unknown;
+      }
+    ): Promise<void>;
+  };
+};
+
+function hasJupyterBroadcast(d: typeof Deno): d is DenoJupyter {
+  return (
+    "jupyter" in d &&
+    d?.jupyter != null &&
+    typeof d?.jupyter == "object" &&
+    "broadcast" in d?.jupyter &&
+    typeof d?.jupyter?.broadcast == "function"
+  );
 }
 
 /**
@@ -23,7 +49,7 @@ function createTaggedTemplate(mediatype: string) {
   return (strings: TemplateStringsArray, ...values: unknown[]) => {
     const payload = strings.reduce(
       (acc, string, i) => acc + string + (values[i] || ""),
-      "",
+      ""
     );
 
     return makeDisplayable({ [mediatype]: payload });
@@ -90,6 +116,9 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
   return true;
 }
 
+// TODO: If possible, expose a synchronous display for Deno version 1.37.0 and an asynchronous display for 1.37.1
+// Constraints: exports themselves can't be dynamically updated with ESM
+
 /**
  * Display function for Jupyter Deno Kernel.
  * Mimics the behavior of IPython's display(obj, raw=True) while working with
@@ -104,24 +133,42 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
  */
 export function display(
   obj: unknown,
-  options: DisplayOptions = { raw: true },
-): Displayable | unknown {
-  // Pass undefined and null through
-  if (obj == null) {
-    return obj;
+  options: DisplayOptions = { raw: false, update: false }
+): Displayable | Promise<void> | undefined {
+  // Always format first to detect if we have a displayable object
+  let displayable;
+
+  if (options.raw && isMediaBundle(obj)) {
+    displayable = makeDisplayable(obj);
+  } else {
+    displayable = format(obj);
   }
 
-  const displayable = format(obj);
+  // Type guards don't work on global namespaces so we have to grab `Deno`
+  // as a separate variable then use the type guard
+  const jeno = Deno;
 
-  if (displayable) {
+  if (!hasJupyterBroadcast(jeno)) {
+    // The "old" interface for `display()` was to return a Displayable
+    // as the last expression in a cell in Deno 1.37.0.
     return displayable;
   }
 
-  if (isMediaBundle(obj) && options.raw) {
-    return makeDisplayable(obj);
+  const bundle = displayable[$display]();
+
+  let message_type = "display_data";
+
+  if (options.update) {
+    message_type = "update_display_data";
+  }
+  let transient = {};
+  if (options.display_id) {
+    transient = { display_id: options.display_id };
   }
 
-  throw new Error(
-    "Object not supported. Please file an issue on https://github.com/rgbkrk/display.js",
-  );
+  return jeno.jupyter.broadcast(message_type, {
+    data: bundle,
+    metadata: {},
+    transient,
+  });
 }
