@@ -19,8 +19,11 @@ type DenoJupyter = typeof Deno & {
     broadcast(
       msg_type: string,
       content: { [key: string]: object },
-      metadata?: { [key: string]: object },
-      buffers?: ArrayBuffer[]
+      extras?: {
+        metadata?: { [key: string]: object };
+        buffers?: ArrayBuffer[];
+        [key: string]: unknown;
+      }
     ): Promise<void>;
   };
 };
