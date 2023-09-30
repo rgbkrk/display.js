@@ -6,10 +6,14 @@ Rich Displays for Jupyter JavaScript Kernels
 
 ```typescript
 import { display } from "https://deno.land/x/display/mod.ts";
-display({
-  "text/markdown":
-    "Get ready for **denotebooks**! ![](https://github.com/denoland.png?size=32)",
-});
+
+await display(
+  {
+    "text/markdown":
+      "Get ready for **denotebooks**! ![](https://github.com/denoland.png?size=32)",
+  },
+  { raw: true },
+);
 ```
 
 `Out[1]:`
@@ -45,7 +49,7 @@ Obviously this isn't the most _fun_ interface which is why this module provides
 a `display` function to make it easier to use.
 
 ```typescript
-display({ "text/markdown": "# Hello from Deno" });
+await display({ "text/markdown": "# Hello from Deno" }, { raw: true );
 ```
 
 ## Usage
@@ -67,7 +71,7 @@ let df = new pl.DataFrame({
   comparability: [0, 1],
 });
 
-display(df);
+await display(df);
 ```
 
 `Out[2]`:
@@ -94,7 +98,7 @@ md`## Hello Deno!`;
 
 - [x] Create a `display` function to provide deno functionality like
       `IPython.display(obj, raw=True)`
-- [ ] Adapt `display` function to hook into sending `display_data` on the Deno
+- [x] Adapt `display` function to hook into sending `display_data` on the Deno
       kernel (xref:
       [denoland/deno#20591](https://github.com/denoland/deno/issues/20591))
 - [x] Duck type common objects and determine a decent representation
