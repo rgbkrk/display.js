@@ -337,7 +337,19 @@ export function format(obj: unknown): Displayable {
     });
   }
 
-  // TODO (rgbkrk): Create colored output like Deno execute_result has
+  // @ts-ignore: the Deno internal symbol is hidden
+  const internalSymbol = Deno.internal;
+
+  if (typeof internalSymbol === "symbol") {
+    // @ts-ignore: the internal API is hidden behind a symbol
+    const DenoInternal = Deno[internalSymbol];
+    return makeDisplayable({
+      "text/plain": DenoInternal.inspectArgs(["%o", obj], {
+        colors: !Deno.noColor,
+      }),
+    });
+  }
+
   return makeDisplayable({
     "text/plain": Deno.inspect(obj),
   });
