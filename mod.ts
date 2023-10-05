@@ -1,3 +1,32 @@
+/**
+ * @module mod
+ * @description
+ * This module provides a `display()` function for the Jupyter Deno Kernel.
+ * It also provides tagged template functions for creating displayable objects
+ * for Jupyter frontends.
+ *
+ * @example
+ * import { display, html, md } from "https://deno.land/x/deno_jupyter/mod.ts";
+ *
+ * display(html`<h1>Hello, world!</h1>`);
+ * display(md`# Notebooks in TypeScript via Deno ![Deno logo](https://github.com/denoland.png?size=32)
+ *
+ * * TypeScript ${Deno.version.typescript}
+ * * V8 ${Deno.version.v8}
+ * * Deno ${Deno.version.deno} 🔜 1.37.0
+ *
+ * Interactive compute with Jupyter _built into Deno_!
+ * `);
+ *
+ * @example
+ * import { display } from "https://deno.land/x/deno_jupyter/mod.ts";
+ *
+ * display({
+ *  "text/plain": "Hello, world!",
+ *  "text/html": "<h1>Hello, world!</h1>",
+ *  "text/markdown": "# Hello, world!",
+ * }, { raw: true });
+ */
 import {
   $display,
   Displayable,
@@ -115,9 +144,6 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
 
   return true;
 }
-
-// TODO: If possible, expose a synchronous display for Deno version 1.37.0 and an asynchronous display for 1.37.1
-// Constraints: exports themselves can't be dynamically updated with ESM
 
 /**
  * Display function for Jupyter Deno Kernel.
