@@ -6,6 +6,8 @@
  * for quickly creating HTML, Markdown, and SVG views.
  *
  * @example
+ * Displaying objects asynchronously in Jupyter frontends.
+ * ```typescript
  * import { display, html, md } from "https://deno.land/x/deno_jupyter/mod.ts";
  *
  * await display(html`<h1>Hello, world!</h1>`);
@@ -17,8 +19,11 @@
  *
  * Interactive compute with Jupyter _built into Deno_!
  * `);
+ * ```
  *
  * @example
+ * Emitting raw MIME bundles.
+ * ```typescript
  * import { display } from "https://deno.land/x/deno_jupyter/mod.ts";
  *
  * await display({
@@ -26,6 +31,7 @@
  *  "text/html": "<h1>Hello, world!</h1>",
  *  "text/markdown": "# Hello, world!",
  * }, { raw: true });
+ * ```
  */
 import {
   $display,
@@ -86,12 +92,14 @@ function createTaggedTemplate(mediatype: string) {
 }
 
 /**
- * Markdown Tagged Template Function.
+ * Show Markdown in Jupyter frontends with a tagged template function.
  *
  * Takes a template string and returns a displayable object for Jupyter frontends.
  *
- * Example usage:
+ * @example
+ * Create a Markdown view.
  *
+ * ```typescript
  * md`# Notebooks in TypeScript via Deno ![Deno logo](https://github.com/denoland.png?size=32)
  *
  * * TypeScript ${Deno.version.typescript}
@@ -100,17 +108,20 @@ function createTaggedTemplate(mediatype: string) {
  *
  * Interactive compute with Jupyter _built into Deno_!
  * `
+ * ```
  */
 export const md = createTaggedTemplate("text/markdown");
 
 /**
- * HTML Tagged Template Function.
+ * Show HTML in Jupyter frontends with a tagged template function.
  *
  * Takes a template string and returns a displayable object for Jupyter frontends.
  *
- * Example usage:
- *
+ * @example
+ * Create an HTML view.
+ * ```typescript
  * html`<h1>Hello, world!</h1>`
+ * ```
  */
 export const html = createTaggedTemplate("text/html");
 
