@@ -15,9 +15,8 @@ export type MediaBundle = {
   "image/gif"?: string; // WISH: Uint8Array | ArrayBuffer
   "application/pdf"?: string; // WISH: Uint8Array | ArrayBuffer
 
-  // TODO(rgbkrk): File an issue on Deno to support `application/.*json` as objects
-  //               as currently Deno is only sending strings.
-  "application/json"?: object; // Note: must be JSON serializable and an object (no arrays, strings, or other primitives)
+  // NOTE: all JSON types must be objects at the top level (no arrays, strings, or other primitives)
+  "application/json"?: object;
   "application/geo+json"?: object;
   "application/vdom.v1+json"?: object;
   "application/vnd.plotly.v1+json"?: object;
