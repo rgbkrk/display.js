@@ -260,7 +260,7 @@ function isHTMLElementLike(obj: unknown): obj is PossibleHTML {
  */
 
 export type Displayable = {
-  [$display]: () => MediaBundle;
+  [$display]: () => MediaBundle | Promise<MediaBundle>;
 };
 
 export function hasDisplaySymbol(obj: unknown): obj is Displayable {

@@ -168,7 +168,7 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
  * @param options - Display options with a default { raw: true }
  * @returns An object that Deno can display
  */
-export function display(
+export async function display(
   obj: unknown,
   options: DisplayOptions = { raw: false, update: false }
 ): Displayable | Promise<void> | undefined {
@@ -191,7 +191,7 @@ export function display(
     return displayable;
   }
 
-  const bundle = displayable[$display]();
+  const bundle = await displayable[$display]();
 
   let message_type = "display_data";
 
@@ -203,9 +203,10 @@ export function display(
     transient = { display_id: options.display_id };
   }
 
-  return jeno.jupyter.broadcast(message_type, {
+  jeno.jupyter.broadcast(message_type, {
     data: bundle,
     metadata: {},
     transient,
   });
+  return;
 }
