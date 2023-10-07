@@ -58,7 +58,7 @@ type DenoJupyter = typeof Deno & {
         metadata?: { [key: string]: object };
         buffers?: ArrayBuffer[];
         [key: string]: unknown;
-      }
+      },
     ): Promise<void>;
   };
 };
@@ -84,7 +84,7 @@ function createTaggedTemplate(mediatype: string) {
   return (strings: TemplateStringsArray, ...values: unknown[]) => {
     const payload = strings.reduce(
       (acc, string, i) => acc + string + (values[i] || ""),
-      ""
+      "",
     );
 
     return makeDisplayable({ [mediatype]: payload });
@@ -168,10 +168,10 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
  * @param options - Display options with a default { raw: true }
  * @returns An object that Deno can display
  */
-export function display(
+export async function display(
   obj: unknown,
-  options: DisplayOptions = { raw: false, update: false }
-): Displayable | Promise<void> | undefined {
+  options: DisplayOptions = { raw: false, update: false },
+): Promise<Displayable | void | undefined> {
   // Always format first to detect if we have a displayable object
   let displayable;
 
@@ -191,7 +191,7 @@ export function display(
     return displayable;
   }
 
-  const bundle = displayable[$display]();
+  const bundle = await displayable[$display]();
 
   let message_type = "display_data";
 
@@ -203,9 +203,10 @@ export function display(
     transient = { display_id: options.display_id };
   }
 
-  return jeno.jupyter.broadcast(message_type, {
+  jeno.jupyter.broadcast(message_type, {
     data: bundle,
     metadata: {},
     transient,
   });
+  return;
 }
