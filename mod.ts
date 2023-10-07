@@ -58,7 +58,7 @@ type DenoJupyter = typeof Deno & {
         metadata?: { [key: string]: object };
         buffers?: ArrayBuffer[];
         [key: string]: unknown;
-      }
+      },
     ): Promise<void>;
   };
 };
@@ -84,7 +84,7 @@ function createTaggedTemplate(mediatype: string) {
   return (strings: TemplateStringsArray, ...values: unknown[]) => {
     const payload = strings.reduce(
       (acc, string, i) => acc + string + (values[i] || ""),
-      ""
+      "",
     );
 
     return makeDisplayable({ [mediatype]: payload });
@@ -170,8 +170,8 @@ function isMediaBundle(obj: unknown): obj is MediaBundle {
  */
 export async function display(
   obj: unknown,
-  options: DisplayOptions = { raw: false, update: false }
-): Displayable | Promise<void> | undefined {
+  options: DisplayOptions = { raw: false, update: false },
+): Promise<Displayable | void | undefined> {
   // Always format first to detect if we have a displayable object
   let displayable;
 
