@@ -68,7 +68,7 @@ Deno.test(
   }
 );
 
-Deno.test("display() returns a MediaBundle with a canvas", async () => {
+Deno.test("display(canvas) creates a PNG", async () => {
   const canvas = createCanvas(5, 5);
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "red";
@@ -81,7 +81,7 @@ Deno.test("display() returns a MediaBundle with a canvas", async () => {
 });
 
 Deno.test(
-  "display() returns a MediaBundle from a class with the display symbol",
+  "class with a Symbol.for('Jupyter.display') function gets displayed",
   async () => {
     class Example {
       x: number;
@@ -103,7 +103,7 @@ Deno.test(
 );
 
 Deno.test(
-  "display() returns a MediaBundle from a class with an async displayable",
+  "class with an async Symbol.for('Jupyter.display') function gets displayed",
   async () => {
     class Example {
       x: number;
