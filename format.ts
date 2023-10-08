@@ -1,3 +1,5 @@
+import { escape as escapeHTML } from "https://deno.land/std/html/mod.ts";
+
 export const $display = Symbol.for("Jupyter.display");
 
 export type MediaBundle = {
@@ -191,7 +193,7 @@ export function extractDataFrame(df: PossibleDataFrame) {
   // Add table headers
   htmlTable += "<thead><tr>";
   schema.fields.forEach((field) => {
-    htmlTable += `<th>${field.name}</th>`;
+    htmlTable += `<th>${escapeHTML(field.name)}</th>`;
   });
   htmlTable += "</tr></thead>";
 
@@ -202,7 +204,7 @@ export function extractDataFrame(df: PossibleDataFrame) {
     .forEach((row) => {
       htmlTable += "<tr>";
       schema.fields.forEach((field) => {
-        htmlTable += `<td>${row[field.name]}</td>`;
+        htmlTable += `<td>${escapeHTML(String(row[field.name]))}</td>`;
       });
       htmlTable += "</tr>";
     });
