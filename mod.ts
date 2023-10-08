@@ -83,7 +83,8 @@ function hasJupyterBroadcast(d: typeof Deno): d is DenoJupyter {
 function createTaggedTemplate(mediatype: string) {
   return (strings: TemplateStringsArray, ...values: unknown[]) => {
     const payload = strings.reduce(
-      (acc, string, i) => acc + string + (values[i] || ""),
+      (acc, string, i) =>
+        acc + string + (values[i] !== undefined ? values[i] : ""),
       "",
     );
 
